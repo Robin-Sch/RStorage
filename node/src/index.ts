@@ -1,9 +1,9 @@
 import express from 'express';
 import { join } from 'node:path';
-import { readFileSync, writeFileSync, existsSync, unlinkSync, mkdirSync, createReadStream } from 'fs';
+import { readFileSync, writeFileSync, existsSync, unlinkSync, mkdirSync, createReadStream } from 'node:fs';
+import { createServer } from 'node:https';
 import multer from 'multer';
 import { createCertificate } from 'pem';
-import { createServer } from 'node:https';
 
 const IPs = [];
 
@@ -22,13 +22,17 @@ import { ALREADY_CONNECTED_TO_PANEL, NOT_CONNECTED_TO_PANEL, NO_SUCH_FILE_OR_DIR
 const NODE_COMMONNAME = process.env.NODE_COMMONNAME || '127.0.0.1';
 const NODE_PORT = parseInt(process.env.NODE_PORT || '3001') || 3001;
 
-const dir = join(__dirname, '../', 'files');
-if (!existsSync(join(__dirname, '../', 'keys'))) mkdirSync(join(__dirname, '../', 'keys'));
-if (!existsSync(join(__dirname, '../', 'files'))) mkdirSync(join(__dirname, '../', 'files'));
-let NODE_KEY = existsSync(join(__dirname, '../', 'keys/node.key')) ? readFileSync(join(__dirname, '../', 'keys/node.key'), 'utf8') : null;
-let NODE_CA = existsSync(join(__dirname, '../', 'keys/ca.key')) ? readFileSync(join(__dirname, '../', 'keys/ca.key'), 'utf8') : null;
-let NODE_CERT = existsSync(join(__dirname, '../', 'keys/node.cert')) ? readFileSync(join(__dirname, '../', 'keys/node.cert'), 'utf8') : null;
-let PANEL_KEY = existsSync(join(__dirname, '../', 'keys/panel.key')) ? readFileSync(join(__dirname, '../', 'keys/panel.key'), 'utf8') : null;
+const nodeDir = join(__dirname, '../../'); // because of dist/src/index.js
+const filesDir = join(nodeDir, 'files');
+const keysDir = join(nodeDir, 'keys');
+
+if (!existsSync(filesDir)) mkdirSync(filesDir);
+if (!existsSync(keysDir)) mkdirSync(keysDir);
+
+let NODE_KEY = existsSync(join(keysDir, 'node.key')) ? readFileSync(join(keysDir, 'node.key'), 'utf8') : null;
+let NODE_CA = existsSync(join(keysDir, 'ca.key')) ? readFileSync(join(keysDir, 'ca.key'), 'utf8') : null;
+let NODE_CERT = existsSync(join(keysDir, 'node.cert')) ? readFileSync(join(keysDir, 'node.cert'), 'utf8') : null;
+let PANEL_KEY = existsSync(join(keysDir, 'panel.key')) ? readFileSync(join(keysDir, 'panel.key'), 'utf8') : null;
 
 async function start() {
 	if (!NODE_KEY || !NODE_CA || !NODE_CERT) {
@@ -43,9 +47,9 @@ async function start() {
 		NODE_CA = keys.clientKey;
 		NODE_CERT = keys.certificate;
 
-		writeFileSync(join(__dirname, '../', 'keys/node.key'), keys.serviceKey);
-		writeFileSync(join(__dirname, '../', 'keys/ca.key'), keys.clientKey);
-		writeFileSync(join(__dirname, '../', 'keys/node.cert'), keys.certificate);
+		writeFileSync(join(keysDir, 'node.key'), keys.serviceKey);
+		writeFileSync(join(keysDir, 'ca.key'), keys.clientKey);
+		writeFileSync(join(keysDir, 'node.cert'), keys.certificate);
 
 		console.log(`To install this node, login on the panel, and enter the IP or hostname (${NODE_COMMONNAME}) and port (${NODE_PORT}) of this server!`);
 		console.log('The certificate can be found below! (copy the -----BEGIN CERTIFICATE----- and -----END CERTIFICATE----- too!)');
@@ -105,9 +109,9 @@ app
 
 		const id = req.body.id;
 		if (!id) return res.status(400).json({ message: INVALID_BODY, success: false });
-		if (!existsSync(`${dir}/${id}`)) return res.status(400).json({ message: NO_SUCH_FILE_OR_DIR, success: false });
+		if (!existsSync(`${filesDir}/${id}`)) return res.status(400).json({ message: NO_SUCH_FILE_OR_DIR, success: false });
 
-		unlinkSync(`${dir}/${id}`);
+		unlinkSync(`${filesDir}/${id}`);
 
 		return res.status(200).json({ message: SUCCESS, success: true });
 	})
@@ -135,9 +139,9 @@ app
 
 		const id = req.body.id;
 		if (!id) return res.status(400).json({ message: INVALID_BODY, success: false });
-		if (!existsSync(`${dir}/${id}`)) return res.status(400).json({ message: NO_SUCH_FILE_OR_DIR, success: false });
+		if (!existsSync(`${filesDir}/${id}`)) return res.status(400).json({ message: NO_SUCH_FILE_OR_DIR, success: false });
 
-		return createReadStream(`${dir}/${id}`).pipe(res);
+		return createReadStream(`${filesDir}/${id}`).pipe(res);
 	})
 	.get('*splat', (req, res) => {
 		return res.status(200).send('Please use the panel!');

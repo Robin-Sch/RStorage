@@ -1,0 +1,38 @@
+# Stage 1: frontend
+FROM node:20-alpine AS frontend
+
+WORKDIR /app/frontend
+
+COPY frontend/package*.json ./
+RUN npm install --omit=dev
+
+COPY frontend/. .
+RUN npm run build
+
+
+# Stage 2: backend
+FROM node:20-alpine AS backend
+
+WORKDIR /app/backend
+
+COPY backend/package*.json ./
+RUN npm install --omit=dev
+
+COPY backend/. .
+RUN npm run build
+
+
+# Stage 3: combine
+FROM node:20-alpine
+
+WORKDIR /app/panel
+
+# Copy backend + production node_modules
+COPY --from=backend /app/backend ./backend
+
+# Copy built frontend (static files)
+COPY --from=frontend /app/frontend ./frontend
+
+EXPOSE 3000
+
+CMD [ "node", "backend/dist/src/index.js" ]

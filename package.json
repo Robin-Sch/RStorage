@@ -2,10 +2,13 @@
 	"name": "rstorage",
 	"version": "0.1.0",
 	"description": "RStorage is an encrypted cloud file storage.",
-	"scripts": {},
+	"scripts": {
+		"start": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\" \"cd node && npm run dev\""
+	},
 	"devDependencies": {
 		"@types/node": "^22.15.17",
 		"@typescript-eslint/eslint-plugin": "^8.32.0",
+		"concurrently": "^9.1.2",
 		"eslint": "^9.18.0",
 		"eslint-config-prettier": "^9.1.0",
 		"eslint-plugin-prettier": "^5.2.1",

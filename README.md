@@ -73,9 +73,6 @@ Please make sure to update tests as appropriate.
 	* This will disable being able to register new accounts.
 	* You shouldn't give others people access to your panel, because every file uploaded (by you) is accessable (with the correct permissions (by default, new accounts get 777))! But if you REALLY REALLY REALLY want them to create a new account, it's possible with this variable.
 
-* PANEL_DISABLE_SERVER_ENCRYPTION (Default: false)
-	* This will disable the server-side encryption.
-
 * PANEL_PORT (Default: 3000)
 	* The port the panel is listening on.
 

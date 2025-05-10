@@ -1,23 +1,26 @@
-import express from 'express';
+import express, { Router } from 'express';
 import session from 'express-session';
 import { randomBytes } from 'node:crypto';
-import { existsSync, mkdirSync } from 'node:fs';
+import { createServer } from 'node:http';
 import { Agent } from 'node:https';
 import { join } from 'node:path';
+import { Worker } from 'node:worker_threads';
 import fetch from 'node-fetch';
 import { v4 as uuidv4 } from 'uuid';
+import { Server } from 'socket.io';
+import socketIOStream from 'socket.io-stream';
+
 import { APIRes } from './types';
-import { Worker } from 'node:worker_threads';
 
 const app = express();
-const http = require('http').createServer(app);
-const io = require('socket.io')(http);
-const ss = require('socket.io-stream');
+const http = createServer(app);
+const io = new Server(http);
 
 import { ALREADY_SUCH_FILE_OR_DIR, NO_SUCH_FILE_OR_DIR, NO_NODES, NO_PERMISSIONS } from './responses';
 import { db } from './sql';
-import { cleanPath, getNodes, getUsers } from './utils';
+import { cleanPath, getNodes } from './utils';
 
+const apiRouter = new Router();
 import filesRouter from './routers/files';
 import nodesRouter from './routers/nodes';
 import usersRouter from './routers/users';
@@ -35,14 +38,12 @@ const sessionHandler = session({
 
 const panel_port = PANEL_PORT || 3000;
 
-if (!existsSync(join(__dirname, '../', 'files'))) mkdirSync(join(__dirname, '../', 'files'));
-
-io.use((socket, next) => {
+io.use((socket: socketIOStream, next) => {
 	const req = socket.handshake;
 	req.originalUrl = '/';
 	return sessionHandler(req, {}, next);
 });
-io.on('connection', (socket) => {
+io.on('connection', (socket: socketIOStream) => {
 	if (!socket.handshake.session.loggedin) return;
 
 	const userID = socket.handshake.session.userID;
@@ -52,7 +53,7 @@ io.on('connection', (socket) => {
 		return (socket.handshake.session.downloading = value);
 	});
 
-	ss(socket).on('upload', async (stream, data) => {
+	socketIOStream(socket).on('upload', async (stream, data) => {
 		if (!data || !data.size || !data.path || !data.name) return;
 		if (!socket.handshake.session.permissions.file.includes(2)) return socket.nsp.to(userID).emit('error', NO_PERMISSIONS);
 
@@ -199,6 +200,7 @@ io.on('connection', (socket) => {
 });
 
 app
+	.use(express.static(join(__dirname, '../../../frontend/dist'))) // Serve static files from the frontend
 	.use(express.json({ limit: '100mb' }))
 	.use(express.urlencoded({ limit: '100mb', extended: true }))
 	.use(sessionHandler)
@@ -206,18 +208,13 @@ app
 		req.io = io;
 		return next();
 	})
-	.use('/users', usersRouter)
-	.use('/nodes', nodesRouter)
-	.use('/files', filesRouter)
-	.get('/', async (req, res) => {
-		if (!req.session.loggedin) return res.redirect('/login');
-		const nodes = await getNodes(false, true, false);
-		const users = await getUsers(false);
-
-		return res.render('index', { nodes, users });
+	.use('/api', apiRouter)
+	.get('*splat', (req, res) => {
+		res.sendFile(join(__dirname, '../../../frontend/dist/index.html'));
 	});
 
-http.listen(panel_port, (err) => {
-	if (err) console.log(err);
-	else console.log(`Server online on port ${panel_port}`);
+apiRouter.use('/users', usersRouter).use('/nodes', nodesRouter).use('/files', filesRouter);
+
+http.listen(panel_port, () => {
+	console.log(`Server online on port ${panel_port}`);
 });

@@ -1,0 +1,39 @@
+name: Check eslint and check if everything builds
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test-build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    strategy:
+      matrix:
+        project: ['backend', 'frontend', 'node']
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install Node v20
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20.x'
+
+      - name: Install root dependencies
+        run: npm install --save-dev
+
+      - name: Install project dependencies for ${{ matrix.project }}
+        working-directory: ${{ matrix.project }}
+        run: npm install --save-dev
+
+      - name: Check eslint for ${{ matrix.project }}
+        working-directory: ${{ matrix.project }}
+        run: npm run eslint
+
+      - name: Build ${{ matrix.project }}
+        working-directory: ${{ matrix.project }}
+        run: npm run build

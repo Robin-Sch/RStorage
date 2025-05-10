@@ -5,9 +5,7 @@
   "scripts": {
     "build": "npx tsc",
     "dev": "PANEL_DISABLE_REGISTER=false  tsc-watch --onSuccess \"node dist/src/index.js\"",
-    "eslint": "npx eslint src --report-unused-disable-directives",
-    "update-deps": "npx ncu -u && npm install && npm audit fix",
-    "copy": "cp -r src/public src/views dist/src"
+    "eslint": "npx eslint src --report-unused-disable-directives"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
@@ -19,6 +17,7 @@
     "socket.io": "^4.8.1",
     "socket.io-stream": "^0.9.1",
     "speakeasy": "^2.0.0",
+    "typescript": "^5.8.3",
     "uuid": "^11.1.0"
   }
 }

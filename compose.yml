@@ -1,0 +1,21 @@
+services:
+  rstorage-panel:
+    container_name: rstorage-panel
+    image: ghcr.io/robin-sch/rstorage-panel:latest
+    restart: unless-stopped
+    environment:
+      - PANEL_DISABLE_REGISTER=true
+    ports:
+      - 3000:3000
+
+  rstorage-node:
+    container_name: rstorage-node
+    image: ghcr.io/robin-sch/rstorage-node:latest
+    restart: unless-stopped
+    environment:
+      - NODE_COMMONNAME=rstorage-node # Should be the same as the IP you input on the panel when registering this node
+    volumes:
+      - ./files:/app/node/files
+      - ./keys:/app/node/keys
+    ports:
+      - 3001:3001

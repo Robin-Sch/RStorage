@@ -1,0 +1,18 @@
+FROM node:20-alpine
+
+WORKDIR /app/node
+
+COPY node/package*.json ./
+RUN npm install --omit=dev
+# Needed otherwise build fails
+RUN npm i @types/node
+
+# Needed for pem
+RUN apk add openssl
+
+COPY node/. .
+RUN npm run build
+
+EXPOSE 3001
+
+CMD [ "node", "dist/src/index.js" ]
