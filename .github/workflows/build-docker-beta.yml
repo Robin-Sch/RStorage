@@ -20,8 +20,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Copy types.ts
-        run: cp backend/types.ts frontend/types.ts
+      - name: Copy types.ts instead of soft linking
+        run: rm frontend/types.ts && cp backend/types.ts frontend/types.ts
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
