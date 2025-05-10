@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { APINodeResponse, APIResponse } from '../../types';
 
 const Node = () => {
 	const { id } = useParams();
@@ -23,13 +24,14 @@ const Node = () => {
 				return;
 			} else if (!res.ok) throw new Error(await res.text());
 
-			const json = await res.json();
-			if (!json.success) throw new Error(res.message);
+			const json = (await res.json()) as APINodeResponse;
+			if (!json.success) throw new Error(json.message);
 
-			setNode(json.data);
+			setNode(json.node);
 		} catch (e) {
 			console.error(e);
-			setError(e.message);
+			if (e instanceof Error) setResponse(e.message);
+			else setResponse('Unknown error (see browser console)');
 		} finally {
 			setLoading(false);
 		}
@@ -60,12 +62,13 @@ const Node = () => {
 				return;
 			} else if (!res.ok) throw new Error(await res.text());
 
-			const json = await res.json();
-			if (!json.success) throw new Error(res.message);
+			const json = (await res.json()) as APIResponse;
+			if (!json.success) throw new Error(json.message);
 			navigate(0);
 		} catch (e) {
 			console.error(e);
-			setResponse(e.message);
+			if (e instanceof Error) setResponse(e.message);
+			else setResponse('Unknown error (see browser console)');
 		}
 	};
 
@@ -79,12 +82,13 @@ const Node = () => {
 				return;
 			} else if (!res.ok) throw new Error(await res.text());
 
-			const json = await res.json();
-			if (!json.success) throw new Error(res.message);
+			const json = (await res.json()) as APIResponse;
+			if (!json.success) throw new Error(json.message);
 			navigate('/');
 		} catch (e) {
 			console.error(e);
-			setResponse(e.message);
+			if (e instanceof Error) setResponse(e.message);
+			else setResponse('Unknown error (see browser console)');
 		}
 	};
 

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { APIResponse, APIUserResponse, User } from '../../types';
 
-const User = () => {
+const UserPage = () => {
 	const { id } = useParams();
 	const navigate = useNavigate();
 
-	const [user, setUser] = useState({
+	const [user, setUser] = useState<User>({
 		username: '',
 		password: '',
 		permissions: '',
@@ -23,13 +24,14 @@ const User = () => {
 				return;
 			} else if (!res.ok) throw new Error(await res.text());
 
-			const json = await res.json();
-			if (!json.success) throw new Error(res.message);
+			const json = (await res.json()) as APIUserResponse;
+			if (!json.success) throw new Error(json.message);
 
-			setUser(json.data);
+			setUser(json.user);
 		} catch (e) {
 			console.error(e);
-			setError(e.message);
+			if (e instanceof Error) setResponse(e.message);
+			else setResponse('Unknown error (see browser console)');
 		} finally {
 			setLoading(false);
 		}
@@ -60,12 +62,13 @@ const User = () => {
 				return;
 			} else if (!res.ok) throw new Error(await res.text());
 
-			const json = await res.json();
-			if (!json.success) throw new Error(res.message);
+			const json = (await res.json()) as APIResponse;
+			if (!json.success) throw new Error(json.message);
 			navigate(0);
 		} catch (e) {
 			console.error(e);
-			setResponse(e.message);
+			if (e instanceof Error) setResponse(e.message);
+			else setResponse('Unknown error (see browser console)');
 		}
 	};
 
@@ -79,12 +82,13 @@ const User = () => {
 				return;
 			} else if (!res.ok) throw new Error(await res.text());
 
-			const json = await res.json();
-			if (!json.success) throw new Error(res.message);
+			const json = (await res.json()) as APIResponse;
+			if (!json.success) throw new Error(json.message);
 			navigate('/');
 		} catch (e) {
 			console.error(e);
-			setResponse(e.message);
+			if (e instanceof Error) setResponse(e.message);
+			else setResponse('Unknown error (see browser console)');
 		}
 	};
 
@@ -280,4 +284,4 @@ const User = () => {
 	);
 };
 
-export default User;
+export default UserPage;

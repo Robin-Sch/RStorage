@@ -2,8 +2,7 @@ import { Agent } from 'node:https';
 import { Readable } from 'node:stream';
 import fetch from 'node-fetch';
 
-import { db } from './sql';
-import { APIRes, NodeConInfo, UserInfo } from './types';
+import { db, init } from './sql';
 
 // TODO: replace with some existing module?
 export const cleanPath = (path) => {
@@ -15,6 +14,7 @@ export const cleanPath = (path) => {
 };
 
 import { randomBytes } from 'crypto';
+import { APIResponse, Node } from '../types';
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 export const randomString = (length: number): string => {
@@ -33,7 +33,7 @@ export const randomString = (length: number): string => {
 	return result;
 };
 
-export const connectToNode = async (ip, port, ca, ckey) => {
+export const connectToNode = async (ip, port, ca, ckey): Promise<APIResponse> => {
 	try {
 		const body = {
 			key: ckey,
@@ -56,7 +56,7 @@ export const connectToNode = async (ip, port, ca, ckey) => {
 			agent,
 			signal,
 		});
-		const json = (await res.json()) as APIRes;
+		const json = (await res.json()) as APIResponse;
 
 		if (!json.success) return { message: json.message, success: false };
 		else return { message: 'Success!', success: true };
@@ -67,7 +67,7 @@ export const connectToNode = async (ip, port, ca, ckey) => {
 
 export const getNodes = async (skipNotConnected, skipConnectionDetails, skipEncryptionKey) => {
 	const all = await db.prepare('SELECT * FROM nodes;').all();
-	const nodes: NodeConInfo[] = [];
+	const nodes: Node[] = [];
 
 	if (!all || all.length == 0) return nodes;
 
@@ -75,7 +75,8 @@ export const getNodes = async (skipNotConnected, skipConnectionDetails, skipEncr
 		const status = await connectToNode(node.ip, node.port, node.ca, node.ckey);
 		if (skipNotConnected && !status.success) continue;
 
-		const obj: NodeConInfo = {
+		// @ts-expect-error TODO
+		const obj: Node = {
 			id: node.id,
 			connected: status.success,
 		};
@@ -84,10 +85,12 @@ export const getNodes = async (skipNotConnected, skipConnectionDetails, skipEncr
 			obj.ip = node.ip;
 			obj.port = node.port;
 			obj.ca = node.ca;
+			// @ts-expect-error TODO
 			obj.ckey = node.ckey;
 		}
 
 		if (!skipEncryptionKey) {
+			// @ts-expect-error TODO
 			obj.key = node.key;
 		}
 
@@ -95,28 +98,6 @@ export const getNodes = async (skipNotConnected, skipConnectionDetails, skipEncr
 	}
 
 	return nodes;
-};
-
-export const getUsers = async (skipPermissions) => {
-	const all = await db.prepare('SELECT * FROM users;').all();
-	const users: UserInfo[] = [];
-
-	if (!all || all.length == 0) return users;
-
-	for (const user of all) {
-		const obj: UserInfo = {
-			id: user.id,
-			username: user.username,
-		};
-
-		if (!skipPermissions) {
-			obj.permissions = user.permissions;
-		}
-
-		users.push(obj);
-	}
-
-	return users;
 };
 
 /*
@@ -153,7 +134,7 @@ export const getPermissions = (number) => {
 	};
 };
 
-export const permissionNumberToArray = (number) => {
+export const permissionNumberToArray = (number): number[] => {
 	if (number == 7) return [1, 2, 4];
 	if (number == 6) return [2, 4];
 	if (number == 5) return [1, 4];
@@ -161,7 +142,8 @@ export const permissionNumberToArray = (number) => {
 	if (number == 3) return [1, 2];
 	if (number == 2) return [2];
 	if (number == 1) return [1];
-	if (number == 0) return [];
+	if (number == 0) return [0];
+	return [];
 };
 
 export const bufferToStream = (buffer) => {
@@ -174,6 +156,7 @@ export const reset = async () => {
 
 	for (const node of nodes) {
 		const body = {
+			// @ts-expect-error TODO
 			key: node.ckey,
 		};
 
@@ -198,6 +181,6 @@ export const reset = async () => {
 	db.prepare('DROP TABLE files;').run();
 	db.prepare('DROP TABLE parts;').run();
 	db.prepare('DROP TABLE nodes;').run();
-	const { init } = require('./sql.js');
+
 	return init();
 };

@@ -4,20 +4,22 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 
 // import file_download from '../assets/files/file_download.svg';
 import file_upload from '../assets/files/file_upload.svg';
-// import file from '../assets/files/file.svg';
+import file_svg from '../assets/files/file.svg';
 import folder_create from '../assets/files/folder_create.svg';
 // import folder_download from '../assets/files/folder_download.svg';
 // import folder_locked from '../assets/files/folder_locked.svg';
 // import folder_upload from '../assets/files/folder_upload.svg';
 import folder from '../assets/files/folder.svg';
 
+import { APIFilesResponse, Directory, RFile } from '../../types';
+
 const Files = () => {
 	const [searchParams] = useSearchParams();
 	const path = searchParams.get('path') || '/';
 	const navigate = useNavigate();
 
-	const [files, setFiles] = useState([]);
-	const [directories, setDirectories] = useState([]);
+	const [files, setFiles] = useState<RFile[]>([]);
+	const [directories, setDirectories] = useState<Directory[]>([]);
 
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState('');
@@ -38,14 +40,15 @@ const Files = () => {
 				return;
 			} else if (!res.ok) throw new Error(await res.text());
 
-			const json = await res.json();
+			const json = (await res.json()) as APIFilesResponse;
 			if (!json.success) throw new Error(json.message);
 
-			setFiles(json.data.files);
-			setDirectories(json.data.directories);
+			setFiles(json.files);
+			setDirectories(json.directories);
 		} catch (e) {
 			console.error(e);
-			setError(e.message);
+			if (e instanceof Error) setResponse(e.message);
+			else setResponse('Unknown error (see browser console)');
 		} finally {
 			setLoading(false);
 		}
@@ -66,7 +69,13 @@ const Files = () => {
 			console.log(acceptedFiles);
 		}
 	}, []);
-	const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
+	const { getRootProps, getInputProps, isDragActive } = useDropzone({
+		onDrop,
+		multiple: true,
+		onDragEnter: undefined,
+		onDragOver: undefined,
+		onDragLeave: undefined,
+	});
 
 	const handleFileUpload = async (e) => {
 		e.preventDefault();
@@ -261,7 +270,7 @@ const Files = () => {
 								{files.map((file, index) => (
 									<tr key={`file-${index}`}>
 										<td className="px-4 py-2 border-b border-gray-200">
-											<img src={file} width="25" height="25" alt="File" />
+											<img src={file_svg} width="25" height="25" alt="File" />
 										</td>
 										<td className="px-4 py-2 border-b border-gray-200">{file.name}</td>
 										<td className="px-4 py-2 border-b border-gray-200">

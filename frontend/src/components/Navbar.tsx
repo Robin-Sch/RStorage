@@ -91,7 +91,7 @@ export default function NavBar() {
 			</div>
 
 			{loginModalOpen && (
-				<div tabIndex="-1" className="fixed inset-0 z-50 flex justify-center items-center w-full h-full bg-dark backdrop-blur-sm">
+				<div tabIndex={-1} className="fixed inset-0 z-50 flex justify-center items-center w-full h-full bg-dark backdrop-blur-sm">
 					<div className="relative p-8 w-full max-w-lg max-h-full rounded-lg shadow-lg bg-tertiary_light text-white space-y-6">
 						<button
 							onClick={closeLoginModal}

@@ -10,20 +10,20 @@ import { v4 as uuidv4 } from 'uuid';
 import { Server } from 'socket.io';
 import socketIOStream from 'socket.io-stream';
 
-import { APIRes } from './types';
-
 const app = express();
 const http = createServer(app);
 const io = new Server(http);
 
 import { ALREADY_SUCH_FILE_OR_DIR, NO_SUCH_FILE_OR_DIR, NO_NODES, NO_PERMISSIONS } from './responses';
-import { db } from './sql';
+import { db, init } from './sql';
 import { cleanPath, getNodes } from './utils';
 
-const apiRouter = new Router();
+const apiRouter = Router();
 import filesRouter from './routers/files';
 import nodesRouter from './routers/nodes';
 import usersRouter from './routers/users';
+
+import { APIResponse } from '../types';
 
 const PANEL_PORT = parseInt(process.env.PANEL_PORT || '3000') || 3000;
 const PANEL_MAX_SIZE = parseInt(process.env.PANEL_MAX_SIZE || '8') || 8;
@@ -36,11 +36,23 @@ const sessionHandler = session({
 	saveUninitialized: true,
 });
 
-const panel_port = PANEL_PORT || 3000;
+declare module 'express-session' {
+	interface SessionData {
+		loggedin: boolean;
+		userID: string;
+		username: string;
+		permissions: {
+			file: number[];
+			node: number[];
+			user: number[];
+		};
+	}
+}
 
 io.use((socket: socketIOStream, next) => {
 	const req = socket.handshake;
 	req.originalUrl = '/';
+	// @ts-expect-error TODO
 	return sessionHandler(req, {}, next);
 });
 io.on('connection', (socket: socketIOStream) => {
@@ -177,7 +189,7 @@ io.on('connection', (socket: socketIOStream) => {
 					agent,
 				});
 
-				const json = (await res.json()) as APIRes;
+				const json = (await res.json()) as APIResponse;
 
 				if (!json.success) {
 					// TODO: mark as deleted, and try again later?
@@ -205,6 +217,7 @@ app
 	.use(express.urlencoded({ limit: '100mb', extended: true }))
 	.use(sessionHandler)
 	.use((req, res, next) => {
+		// @ts-expect-error TODO
 		req.io = io;
 		return next();
 	})
@@ -215,6 +228,7 @@ app
 
 apiRouter.use('/users', usersRouter).use('/nodes', nodesRouter).use('/files', filesRouter);
 
-http.listen(panel_port, () => {
-	console.log(`Server online on port ${panel_port}`);
+init();
+http.listen(PANEL_PORT, () => {
+	console.log(`Server online on port ${PANEL_PORT}`);
 });

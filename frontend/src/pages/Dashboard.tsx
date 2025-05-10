@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { APINodesResponse, APIResponse, APIUsersResponse, Node, User } from '../../types';
 
 const Dashboard = () => {
 	const navigate = useNavigate();
 
-	const [nodes, setNodes] = useState([]);
-	const [users, setUsers] = useState([]);
+	const [nodes, setNodes] = useState<Node[]>([]);
+	const [users, setUsers] = useState<User[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 
@@ -24,12 +25,13 @@ const Dashboard = () => {
 			});
 			if (!res.ok) throw new Error(await res.text());
 
-			const json = await res.json();
-			if (!json.success) throw new Error(res.message);
+			const json = (await res.json()) as APIResponse;
+			if (!json.success) throw new Error(json.message);
 			else fetchNodes();
 		} catch (e) {
 			console.error(e);
-			setResponse(e.message);
+			if (e instanceof Error) setResponse(e.message);
+			else setResponse('Unknown error (see browser console)');
 		}
 	};
 
@@ -44,7 +46,8 @@ const Dashboard = () => {
 			}
 		} catch (e) {
 			console.error(e);
-			setError(e);
+			if (e instanceof Error) setResponse(e.message);
+			else setResponse('Unknown error (see browser console)');
 		} finally {
 			setLoading(false);
 		}
@@ -61,13 +64,14 @@ const Dashboard = () => {
 				return;
 			} else if (!res.ok) throw new Error(await res.text());
 
-			const json = await res.json();
+			const json = (await res.json()) as APINodesResponse;
 			if (!json.success) throw new Error(json.message);
 
-			setNodes(json.data);
+			setNodes(json.nodes);
 		} catch (e) {
 			console.error(e);
-			setError(e.message);
+			if (e instanceof Error) setResponse(e.message);
+			else setResponse('Unknown error (see browser console)');
 		}
 	};
 	const fetchUsers = async () => {
@@ -78,13 +82,14 @@ const Dashboard = () => {
 				return;
 			} else if (!res.ok) throw new Error(await res.text());
 
-			const json = await res.json();
+			const json = (await res.json()) as APIUsersResponse;
 			if (!json.success) throw new Error(json.message);
 
-			setUsers(json.data);
+			setUsers(json.users);
 		} catch (e) {
 			console.error(e);
-			setError(e.message);
+			if (e instanceof Error) setResponse(e.message);
+			else setResponse('Unknown error (see browser console)');
 		}
 	};
 	useEffect(() => {
@@ -103,10 +108,7 @@ const Dashboard = () => {
 				<h1 className="text-3xl font-bold text-gray-800 mb-6">RStorage Panel</h1>
 
 				<div className="mb-8">
-					<button
-						onClick={() => (window.location.href = '/files?path=/')}
-						className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
-					>
+					<button onClick={() => navigate('/files?path=/')} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
 						Browse files
 					</button>
 				</div>
@@ -137,7 +139,7 @@ const Dashboard = () => {
 									</tr>
 								))}
 								<tr>
-									<td colSpan="3" className="px-6 py-4 whitespace-nowrap">
+									<td colSpan={3} className="px-6 py-4 whitespace-nowrap">
 										<div className="flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4">
 											<input
 												type="text"

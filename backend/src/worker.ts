@@ -1,15 +1,15 @@
 import FormData from 'form-data';
 import { randomBytes, createCipheriv, createDecipheriv } from 'node:crypto';
-import fetch from 'node-fetch';
 import { createReadStream, createWriteStream, unlinkSync } from 'node:fs';
 import { Agent } from 'node:https';
 import { join } from 'node:path';
+import { pipeline, Writable } from 'node:stream';
 import { workerData, parentPort, isMainThread } from 'node:worker_threads';
+import fetch from 'node-fetch';
 
 import { db } from './sql';
 import { bufferToStream } from './utils';
-import { pipeline, Writable } from 'node:stream';
-import { APIRes } from './types';
+import { APIResponse } from '../types';
 
 const tempDir = join(__dirname, '../', 'files');
 
@@ -42,7 +42,7 @@ if (!isMainThread && parentPort !== null) {
 				body: formData,
 				agent,
 			});
-			const json = (await res.json()) as APIRes;
+			const json = (await res.json()) as APIResponse;
 
 			if (!json.success) {
 				// TODO: delete all uploaded parts, and throw error?
@@ -59,6 +59,7 @@ if (!isMainThread && parentPort !== null) {
 				}
 			}
 		} catch (e) {
+			console.error(e);
 			return parentPort!.postMessage({ toUser: true, event: 'message', data: `[upload] [server-side] ${path}${name} (${curloop + 1}/${loops}) failed` });
 		}
 	};
@@ -122,6 +123,7 @@ if (!isMainThread && parentPort !== null) {
 				buffers[part.i] = partBuffer;
 				parentPort!.postMessage({ toUser: true, event: 'message', data: `[download] [server-side] ${path}${name} (${curloop + 1}/${parts.length}) decrypted` });
 			} catch (e) {
+				console.error(e);
 				return parentPort!.postMessage({
 					toUser: true,
 					event: 'message',

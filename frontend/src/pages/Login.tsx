@@ -1,8 +1,12 @@
 import { useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
+import { APIResponse, APITOTPResponse } from '../../types';
 
 const LoginForm = () => {
+	const navigate = useNavigate();
+
 	const [activeForm, setActiveForm] = useState('login');
 	const [response, setResponse] = useState('');
 	const [totpSecret, setTotpSecret] = useState('');
@@ -19,7 +23,7 @@ const LoginForm = () => {
 		setResponse('');
 	};
 
-	const makeRequest = async (action, data) => {
+	const makeRequest = async (action, data): Promise<APIResponse | APITOTPResponse> => {
 		try {
 			const res = await fetch(`/api/users/${action}`, {
 				method: 'POST',
@@ -28,36 +32,36 @@ const LoginForm = () => {
 			});
 			if (!res.ok) throw new Error(`Received status code: ${res.status}`);
 
-			const json = await res.json();
+			const json = (await res.json()) as APIResponse | APITOTPResponse;
 			if (!json.success) setResponse(json.message);
 
 			return json;
 		} catch (e) {
 			console.error(e);
 			setResponse('There are problems connecting to the server!');
-			return { success: false };
+			return { message: 'There are problems connecting to the server!', success: false };
 		}
 	};
 
 	const login = async (data) => {
 		const json = await makeRequest('login', data);
-		if (json.success) window.location.href = '/dashboard';
+		if (json.success) navigate('/dashboard');
 	};
 
 	const register = async (data) => {
 		const json = await makeRequest('register', data);
 		if (json.success) {
-			if (data.totp && json.secret) {
+			if (data.totp && 'secret' in json) {
 				setTotpSecret(`Your secret is: ${json.secret}`);
 				setQrCodeData(`otpauth://totp/RStorage?secret=${json.secret}`);
 				setActiveForm('verify-totp');
-			} else window.location.href = '/dashboard';
+			} else navigate('/dashboard');
 		}
 	};
 
 	const verify = async (data) => {
 		const json = await makeRequest('totp-verify', data);
-		if (json.success) window.location.href = '/dashboard';
+		if (json.success) navigate('/dashboard');
 	};
 
 	return (

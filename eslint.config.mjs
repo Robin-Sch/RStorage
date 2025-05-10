@@ -20,7 +20,7 @@ const compat = new FlatCompat({
 export default [
 	...compat.extends('eslint:recommended', 'plugin:@typescript-eslint/eslint-recommended', 'plugin:@typescript-eslint/recommended', 'prettier', 'plugin:react/recommended', 'plugin:react/jsx-runtime', 'plugin:react-hooks/recommended'),
 	{
-		files: ['**/*.js', '**/*.ts', '**/*.jsx'],
+		files: ['**/*.js', '**/*.ts', '**/*.jsx', '**/*.tsx'],
 		ignores: ['**/dist/**', '**/node_modules/**'],
 		plugins: {
 			prettier,

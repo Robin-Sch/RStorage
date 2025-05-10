@@ -28,6 +28,4 @@ const init = () => {
 	db.prepare('CREATE TABLE if not exists parts (id TEXT, file TEXT, node TEXT, iv TEXT, i INTEGER);').run();
 };
 
-init();
-
 export { db, init };
