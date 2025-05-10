@@ -20,6 +20,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Copy types.json
+        run: backend/types.json frontend/types.json
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
 

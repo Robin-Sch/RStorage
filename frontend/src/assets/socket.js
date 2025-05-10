@@ -1,3 +1,4 @@
+/*
 const socket = io();
 
 socket.on('message', (msg) => {
@@ -48,3 +49,4 @@ socket.on('upload-percentage', (percentage) => {
 	const el = document.getElementById('percentage-upload');
 	if (el) el.innerHTML = `${percentage}%`;
 });
+*/
