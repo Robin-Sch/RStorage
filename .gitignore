@@ -26,5 +26,5 @@ package-lock.json
 
 # Other
 .env
-keys/
-files/
+node/keys
+node/files

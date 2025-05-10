@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useDropzone } from 'react-dropzone';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 
 // import file_download from '../assets/files/file_download.svg';
@@ -24,9 +25,10 @@ const Files = () => {
 	const [messages, setMessages] = useState('');
 
 	const [fileKey, setFileKey] = useState('');
-	const [decryptionKey, setDecryptionKey] = useState('');
-	const [directoryName, setDirectoryName] = useState(path);
 	const [uploadPercentage, setUploadPercentage] = useState('');
+
+	const [directoryName, setDirectoryName] = useState(path);
+	const [decryptionKey, setDecryptionKey] = useState('');
 
 	const fetchFiles = async () => {
 		try {
@@ -56,6 +58,15 @@ const Files = () => {
 		const newPath = path.split('/').slice(0, -1).join('/') || '/';
 		navigate(`/files?path=${encodeURIComponent(newPath)}`);
 	};
+
+	const onDrop = useCallback((acceptedFiles) => {
+		// TODO: File[]
+		if (acceptedFiles.length > 0) {
+			// Handle file upload
+			console.log(acceptedFiles);
+		}
+	}, []);
+	const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
 	const handleFileUpload = async (e) => {
 		e.preventDefault();
@@ -92,6 +103,10 @@ const Files = () => {
 		*/
 	};
 
+	const uploadFile = (file) => {
+		console.log(file);
+	};
+
 	const handleDirCreate = async () => {
 		// TODO
 		// return (window.location = window.location.pathname + replaceQueryParam('path', name, window.location.search));
@@ -118,61 +133,74 @@ const Files = () => {
 				</button>
 
 				<div className="bg-white rounded-lg shadow-md p-6">
-					<h1 className="text-2xl font-bold text-gray-800 mb-6">Files Manager</h1>
+					<h1 className="text-2xl font-bold text-gray-800 mb-6">File Manager</h1>
 
 					<div className="overflow-x-auto">
-						<table className="min-w-full bg-white border border-gray-200 mb-6">
-							<tbody>
-								<tr>
-									<td className="px-4 py-2 border-b border-gray-200">
-										<img src={file_upload} width="25" height="25" alt="Upload" />
-									</td>
-									<td className="px-4 py-2 border-b border-gray-200">
-										<input
-											id="file-key"
-											type="password"
-											placeholder="Encryption key"
-											value={fileKey}
-											onChange={(e) => setFileKey(e.target.value)}
-											className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-										/>
-									</td>
-									<td className="px-4 py-2 border-b border-gray-200">
-										<input
-											id="file"
-											type="file"
-											name="upload"
-											className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-										/>
-									</td>
-									<td className="px-4 py-2 border-b border-gray-200">
-										<button onClick={handleFileUpload} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors">
-											Upload{uploadPercentage}
-										</button>
-									</td>
-								</tr>
-								<tr>
-									<td className="px-4 py-2 border-b border-gray-200">
-										<img src={folder_create} width="25" height="25" alt="Create folder" />
-									</td>
-									<td className="px-4 py-2 border-b border-gray-200">
-										<input
-											id="createDirectory"
-											type="text"
-											value={directoryName}
-											onChange={(e) => setDirectoryName(e.target.value)}
-											className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-										/>
-									</td>
-									<td className="px-4 py-2 border-b border-gray-200">
-										<button onClick={handleDirCreate} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
-											Create directory
-										</button>
-									</td>
-									<td className="px-4 py-2 border-b border-gray-200"></td>
-								</tr>
-							</tbody>
-						</table>
+						{/*  Upload */}
+						<div
+							className={`mb-8 ${isDragActive ? 'bg-blue-50' : 'bg-gray-50'} p-6 rounded-lg border-2 border-dashed border-gray-200 hover:border-blue-300 transition-colors`}
+							{...getRootProps()}
+						>
+							<div className="flex items-center space-x-4 mb-4">
+								<div className="p-3 bg-blue-100 rounded-full">
+									<img src={file_upload} width="24" height="24" alt="Upload" className="text-blue-600" />
+								</div>
+								<div className="flex-1">
+									<h3 className="font-medium text-gray-800">Upload Files</h3>
+									<p className="text-sm text-gray-500">Drag and drop files here or click to browse</p>
+								</div>
+							</div>
+
+							<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+								<div className="md:col-span-2">
+									<input
+										type="password"
+										placeholder="Encryption key (optional)"
+										value={fileKey}
+										onChange={(e) => setFileKey(e.target.value)}
+										className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+									/>
+								</div>
+								<div className="flex space-x-2">
+									<input {...getInputProps()} id="file" type="file" className="hidden" />
+									<button
+										onClick={handleFileUpload}
+										className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-md flex items-center justify-center"
+									>
+										<span>Upload</span>
+										{uploadPercentage && <span className="ml-2 text-sm">{uploadPercentage}</span>}
+									</button>
+								</div>
+							</div>
+						</div>
+
+						{/* Create Directory */}
+						<div className="bg-gray-50 p-6 rounded-lg mb-8">
+							<div className="flex items-center space-x-4 mb-4">
+								<div className="p-3 bg-blue-100 rounded-full">
+									<img src={folder_create} width="24" height="24" alt="Create folder" />
+								</div>
+								<div className="flex-1">
+									<h3 className="font-medium text-gray-800">Create Directory</h3>
+									<p className="text-sm text-gray-500">Enter the directory path</p>
+								</div>
+							</div>
+
+							<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+								<div className="md:col-span-2">
+									<input
+										type="text"
+										value={directoryName}
+										onChange={(e) => setDirectoryName(e.target.value)}
+										placeholder="e.g., /documents/projects"
+										className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+									/>
+								</div>
+								<button onClick={handleDirCreate} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md">
+									Create
+								</button>
+							</div>
+						</div>
 
 						<table className="min-w-full bg-white border border-gray-200">
 							<thead className="bg-gray-50">
@@ -259,9 +287,8 @@ const Files = () => {
 					</div>
 
 					<div className="mt-6">
-						<div id="decryption" className="flex items-center space-x-2 mb-4">
+						<div className="flex items-center space-x-2 mb-4">
 							<input
-								id="decryption-key"
 								type="password"
 								placeholder="Decryption key"
 								value={decryptionKey}
