@@ -1,0 +1,53 @@
+name: Bug Report
+description: File a bug report
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+  - type: checkboxes
+    id: pre-flight
+    attributes:
+      label: Before submitting, I have made sure to
+      options:
+        - label: Search [existing issues](https://github.com/Robin-Sch/RStorage/search?q=&type=issues) and [discussions](https://github.com/Robin-Sch/RStorage/search?q=&type=discussions).
+          required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: What version of our software are you running?
+      placeholder: v1.0.0
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of what the bug is. If applicable, add screenshots to help explain your problem.
+      placeholder: |
+        The site does not work/breaks when...
+
+        [Screenshot if applicable]
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Steps to reproduce the behavior.
+      placeholder: |
+        1. Go to '...'
+        2. Click on '....'
+        3. See error
+    validations:
+      required: true
+  - type: textarea
+    id: other
+    attributes:
+      label: Other
+      description: Include any other relevant details. E.g. service version or API version, docker version, etc.
+    validations:
+      required: false
