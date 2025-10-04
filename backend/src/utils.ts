@@ -1,5 +1,4 @@
 import { Agent } from 'node:https';
-import { Readable } from 'node:stream';
 import fetch from 'node-fetch';
 
 import { db, init } from './sql';
@@ -65,7 +64,7 @@ export const connectToNode = async (ip, port, ca, ckey): Promise<APIResponse> =>
 	}
 };
 
-export const getNodes = async (skipNotConnected, skipConnectionDetails, skipEncryptionKey) => {
+export const getNodes = async (skipNotConnected, skipConnectionDetails, skipEncryptionKey): Promise<Node[]> => {
 	const all = await db.prepare('SELECT * FROM nodes;').all();
 	const nodes: Node[] = [];
 
@@ -85,12 +84,10 @@ export const getNodes = async (skipNotConnected, skipConnectionDetails, skipEncr
 			obj.ip = node.ip;
 			obj.port = node.port;
 			obj.ca = node.ca;
-			// @ts-expect-error TODO
 			obj.ckey = node.ckey;
 		}
 
 		if (!skipEncryptionKey) {
-			// @ts-expect-error TODO
 			obj.key = node.key;
 		}
 
@@ -146,17 +143,12 @@ export const permissionNumberToArray = (number): number[] => {
 	return [];
 };
 
-export const bufferToStream = (buffer) => {
-	return Readable.from(buffer);
-};
-
 export const reset = async () => {
 	let nodes = await getNodes(true, false, true);
 	if (nodes.length == 0) nodes = [];
 
 	for (const node of nodes) {
 		const body = {
-			// @ts-expect-error TODO
 			key: node.ckey,
 		};
 
@@ -184,3 +176,16 @@ export const reset = async () => {
 
 	return init();
 };
+
+export class EncryptionStream extends TransformStream {
+	iv = crypto.getRandomValues(new Uint8Array(12));
+
+	constructor(key) {
+		super({
+			transform: async (chunk, controller) => {
+				if (chunk === null) controller.terminate();
+				else controller.enqueue(await crypto.subtle.encrypt({ name: 'AES-GCM', iv: this.iv }, key, chunk));
+			},
+		});
+	}
+}

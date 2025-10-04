@@ -11,7 +11,20 @@ import folder_create from '../assets/files/folder_create.svg';
 // import folder_upload from '../assets/files/folder_upload.svg';
 import folder from '../assets/files/folder.svg';
 
-import { APIFilesResponse, Directory, RFile } from '../../types';
+import { APIFilesResponse, APIResponse, Directory, RFile } from '../../types';
+
+class EncryptionStream extends TransformStream {
+	iv = crypto.getRandomValues(new Uint8Array(12));
+
+	constructor(key) {
+		super({
+			transform: async (chunk, controller) => {
+				if (chunk === null) controller.terminate();
+				else controller.enqueue(await crypto.subtle.encrypt({ name: 'AES-GCM', iv: this.iv }, key, chunk));
+			},
+		});
+	}
+}
 
 const Files = () => {
 	const [searchParams] = useSearchParams();
@@ -24,10 +37,9 @@ const Files = () => {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState('');
 	const [response, setResponse] = useState('');
-	const [messages, setMessages] = useState('');
+	const [messages, setMessages] = useState<string[]>([]);
 
-	const [fileKey, setFileKey] = useState('');
-	const [uploadPercentage, setUploadPercentage] = useState('');
+	const [uploadPercentage, setUploadPercentage] = useState<number | null>(null);
 
 	const [directoryName, setDirectoryName] = useState(path);
 	const [decryptionKey, setDecryptionKey] = useState('');
@@ -62,63 +74,67 @@ const Files = () => {
 		navigate(`/files?path=${encodeURIComponent(newPath)}`);
 	};
 
-	const onDrop = useCallback((acceptedFiles) => {
-		// TODO: File[]
-		if (acceptedFiles.length > 0) {
-			// Handle file upload
-			console.log(acceptedFiles);
+	const onDrop = useCallback(async (files) => {
+		if (files.length === 0) return;
+		const file: File = files[0];
+
+		const password = prompt('Please enter a password for the file');
+		if (!password) return;
+		const pwUtf8 = new TextEncoder().encode(password); // encode password as UTF-8
+		const pwHash = await crypto.subtle.digest('SHA-256', pwUtf8); // hash the password
+
+		const key = await crypto.subtle.importKey('raw', pwHash, 'AES-GCM', false, ['encrypt']);
+
+		// setUploadPercentage(0);
+		// setMessages([`[upload] [client-side] ${path}${file.name} encrypting`, ...messages]);
+
+		const inputStream = file.stream();
+		const outputStream = inputStream.pipeThrough(new EncryptionStream(key));
+
+		try {
+			// TODO: Instead of converting to blob, we should stream instead
+			const blob = new Blob([
+				await outputStream
+					.getReader()
+					.read()
+					.then((r) => r.value),
+			]);
+
+			const res = await fetch(`/api/files?path=${encodeURIComponent(path)}`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/octet-stream',
+					'X-Filename': file.name,
+					'X-Size': blob.size.toString(),
+				},
+				body: blob,
+			});
+
+			if (res.status === 401) {
+				navigate('/login');
+				return;
+			}
+
+			const json = (await res.json()) as APIResponse;
+			if (!json.success) throw new Error(json.message);
+		} catch (e) {
+			console.error(e);
+			if (e instanceof Error) setResponse(e.message);
+			else setResponse('Unknown error (see browser console)');
 		}
 	}, []);
 	const { getRootProps, getInputProps, isDragActive } = useDropzone({
 		onDrop,
-		multiple: true,
-		onDragEnter: undefined,
-		onDragOver: undefined,
-		onDragLeave: undefined,
+		multiple: false,
 	});
 
-	const handleFileUpload = async (e) => {
-		e.preventDefault();
-		// TODO
-		/*
-			const file = document.getElementById('file').files[0];
-			if (!file) return;
-
-			const key = document.getElementById('file-key').value;
-			if (!key) return alert('You need to enter a encryption key.');
-			document.getElementById('file-key').value = '';
-
-			const name = file.name;
-			const params = new URLSearchParams(window.location.search);
-			const path = params.get('path');
-
-			document.getElementById('percentage-upload').innerHTML = '0%';
-			showMessage(`[upload] [client-side] ${path}${name} encrypting`);
-
-			const reader = new FileReader();
-			reader.onload = (e) => {
-				const encrypted = CryptoJS.AES.encrypt(e.target.result, key);
-				const encryptedFile = new File([encrypted], name, { type: 'text/plain' });
-
-				showMessage(`[upload] [client-side] ${path}${name} encrypted`);
-
-				const stream = ss.createStream();
-				const blobStream = ss.createBlobReadStream(encryptedFile);
-
-				ss(socket).emit('upload', stream, { size: encryptedFile.size, path, name });
-				return blobStream.pipe(stream);
-			};
-			reader.readAsArrayBuffer(file);
-		*/
-	};
-
 	const uploadFile = (file) => {
-		console.log(file);
+		console.log('NO');
 	};
 
 	const handleDirCreate = async () => {
-		// TODO
-		// return (window.location = window.location.pathname + replaceQueryParam('path', name, window.location.search));
+		navigate(`/files?path=${directoryName}`);
+		// TODO: create
 	};
 
 	const handleFileDelete = async (path, name) => {
@@ -160,26 +176,15 @@ const Files = () => {
 								</div>
 							</div>
 
-							<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-								<div className="md:col-span-2">
-									<input
-										type="password"
-										placeholder="Encryption key (optional)"
-										value={fileKey}
-										onChange={(e) => setFileKey(e.target.value)}
-										className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-									/>
-								</div>
-								<div className="flex space-x-2">
-									<input {...getInputProps()} id="file" type="file" className="hidden" />
-									<button
-										onClick={handleFileUpload}
-										className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-md flex items-center justify-center"
-									>
-										<span>Upload</span>
-										{uploadPercentage && <span className="ml-2 text-sm">{uploadPercentage}</span>}
-									</button>
-								</div>
+							<div className="flex space-x-2">
+								<input {...getInputProps()} id="file" type="file" className="hidden" />
+								<button
+									onClick={uploadFile}
+									className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-md flex items-center justify-center"
+								>
+									<span>Upload</span>
+									{uploadPercentage && <span className="ml-2 text-sm">{uploadPercentage}%</span>}
+								</button>
 							</div>
 						</div>
 
@@ -325,7 +330,7 @@ const Files = () => {
 							</div>
 						)}
 
-						{messages && (
+						{messages.length > 0 && (
 							<div className="bg-green-50 border-l-4 border-green-400 p-4">
 								<div className="flex">
 									<div className="flex-shrink-0">

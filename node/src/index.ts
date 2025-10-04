@@ -1,21 +1,10 @@
 import express from 'express';
 import { join } from 'node:path';
-import { readFileSync, writeFileSync, existsSync, unlinkSync, mkdirSync, createReadStream } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, unlinkSync, mkdirSync, createReadStream, createWriteStream } from 'node:fs';
 import { createServer } from 'node:https';
-import multer from 'multer';
 import { createCertificate } from 'pem';
 
-const IPs = [];
-
-const storage = multer.diskStorage({
-	destination: (req, file, cb) => {
-		cb(null, join(__dirname, '../', 'files'));
-	},
-	filename: (req, file, cb) => {
-		cb(null, file.originalname);
-	},
-});
-const upload = multer({ storage });
+const IPs: string[] = [];
 
 import { ALREADY_CONNECTED_TO_PANEL, NOT_CONNECTED_TO_PANEL, NO_SUCH_FILE_OR_DIR, INVALID_BODY, SUCCESS } from './responses';
 
@@ -76,7 +65,6 @@ app
 		if (PANEL_KEY && PANEL_KEY !== key) return res.status(403).json({ message: ALREADY_CONNECTED_TO_PANEL, success: false });
 
 		const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-		// @ts-expect-error yes
 		if (!IPs.includes(ip)) IPs.push(ip);
 
 		if (!PANEL_KEY) {
@@ -104,7 +92,6 @@ app
 
 		const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 		const key = req.body.key;
-		// @ts-expect-error yes
 		if (key !== PANEL_KEY || !IPs.includes(ip)) return res.status(403).json({ message: ALREADY_CONNECTED_TO_PANEL, success: false });
 
 		const id = req.body.id;
@@ -115,26 +102,34 @@ app
 
 		return res.status(200).json({ message: SUCCESS, success: true });
 	})
-	.post('/files/upload', upload.single('file'), async (req, res) => {
+	.post('/files/upload', async (req, res) => {
 		if (!PANEL_KEY) return res.status(400).json({ message: NOT_CONNECTED_TO_PANEL, success: false, reconnect: true });
 
-		const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-		const key = req.body.key;
-		// @ts-expect-error yes
+		const ip = req.headers['x-forwarded-for'] || (req.socket.remoteAddress as string);
+
+		const key = req.headers['authorization']?.toString();
 		if (key !== PANEL_KEY || !IPs.includes(ip)) return res.status(403).json({ message: ALREADY_CONNECTED_TO_PANEL, success: false });
 
-		const json = {
-			message: SUCCESS,
-			success: true,
-		};
-		return res.status(200).json(json);
+		const name = req.headers['x-filename']?.toString();
+		if (!name) return res.status(400).json({ message: INVALID_BODY, success: false });
+
+		const filePath = join(__dirname, '../', 'files', name);
+		const writeStream = createWriteStream(filePath);
+		req.pipe(writeStream);
+
+		writeStream.on('finish', () => {
+			return res.status(200).json({ message: '', success: true });
+		});
+
+		writeStream.on('error', (err) => {
+			return res.status(500).json({ message: err, success: false }); // TODO: err msg
+		});
 	})
 	.post('/files/download', async (req, res) => {
 		if (!PANEL_KEY) return res.status(400).json({ message: NOT_CONNECTED_TO_PANEL, success: false, reconnect: true });
 
 		const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 		const key = req.body.key;
-		// @ts-expect-error yes
 		if (key !== PANEL_KEY || !IPs.includes(ip)) return res.status(403).json({ message: ALREADY_CONNECTED_TO_PANEL, success: false });
 
 		const id = req.body.id;

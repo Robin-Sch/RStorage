@@ -5,12 +5,12 @@
 	"scripts": {
 		"build": "npx tsc",
 		"dev": "tsc-watch --onSuccess \"node dist/src/index.js\"",
-		"eslint": "npx eslint src --report-unused-disable-directives"
+		"eslint": "npx eslint src --report-unused-disable-directives",
+    	"update-deps": "npx npm-check-updates -u && npm install && npm audit fix"
 	},
 	"dependencies": {
 		"express": "^5.1.0",
-		"multer": "^1.4.5-lts.2",
 		"pem": "^1.14.8",
-		"typescript": "^5.8.3"
+		"typescript": "^5.9.3"
 	}
 }

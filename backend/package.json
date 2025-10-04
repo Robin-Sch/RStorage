@@ -5,23 +5,21 @@
   "scripts": {
     "build": "npx tsc",
     "dev": "PANEL_DISABLE_REGISTER=false  tsc-watch --onSuccess \"node dist/src/index.js\"",
-    "eslint": "npx eslint src --report-unused-disable-directives"
+    "eslint": "npx eslint src --report-unused-disable-directives",
+    "update-deps": "npx npm-check-updates -u && npm install && npm audit fix"
   },
   "dependencies": {
-    "bcrypt": "^5.1.1",
-    "better-sqlite3": "^11.10.0",
+    "@types/express-session": "^1.18.2",
+    "bcrypt": "^6.0.0",
+    "better-sqlite3": "^12.4.1",
     "express": "^5.1.0",
-    "express-session": "^1.18.1",
-    "form-data": "^4.0.2",
-    "node-fetch": "^3.3.2",
-    "socket.io": "^4.8.1",
-    "socket.io-stream": "^0.9.1",
+    "express-session": "^1.18.2",
+    "form-data": "^4.0.4",
     "speakeasy": "^2.0.0",
-    "typescript": "^5.8.3",
-    "uuid": "^11.1.0"
+    "typescript": "^5.9.3",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
-    "@types/express": "^5.0.1",
-    "@types/express-session": "^1.18.1"
+    "@types/express": "^5.0.3"
   }
 }

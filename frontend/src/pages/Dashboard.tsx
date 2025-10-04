@@ -13,7 +13,7 @@ const Dashboard = () => {
 	const [ip, setIp] = useState('127.0.0.1');
 	const [port, setPort] = useState('3001');
 	const [ca, setCa] = useState(`-----BEGIN CERTIFICATE-----
-	----END CERTIFICATE-----`);
+----END CERTIFICATE-----`);
 	const [response, setResponse] = useState('');
 
 	const createNode = async () => {

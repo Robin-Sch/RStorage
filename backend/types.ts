@@ -4,6 +4,8 @@ export type Node = {
 	ip: string;
 	port: string;
 	ca: string;
+	key: string; // encryption key
+	ckey: string; // auth key
 };
 
 export type User = {
@@ -49,3 +51,14 @@ export type APIFilesResponse = APIResponse & {
 export type APITOTPResponse = APIResponse & {
 	secret: string;
 };
+
+export class APIRequestError extends Error {
+	constructor(
+		public status: number = 400,
+		public json: APIResponse = { message: 'Invalid request', success: false }
+	) {
+		super(JSON.stringify(json));
+		this.status = status;
+		this.json = json;
+	}
+}

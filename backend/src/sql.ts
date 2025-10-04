@@ -1,7 +1,7 @@
+import { hash } from 'bcrypt';
 import sqlite3 from 'better-sqlite3';
 import { join } from 'node:path';
 import { v4 as uuidv4 } from 'uuid';
-import { hash } from 'bcrypt';
 
 const db = sqlite3(join(__dirname, 'database.db'));
 
