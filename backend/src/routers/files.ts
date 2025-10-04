@@ -4,8 +4,8 @@ import { Agent } from 'node:https';
 import { v4 as uuidv4 } from 'uuid';
 
 import { db } from '../sql';
-import { cleanPath, EncryptionStream, getNodes } from '../utils';
-import { APIFilesResponse, APIRequestError, APIResponse } from '../../types';
+import { APIFilesResponse, APIRequestError, APIResponse, EncryptionStream } from '../types';
+import { cleanPath, getNodes } from '../utils';
 
 // const PANEL_MAX_SIZE = parseInt(process.env.PANEL_MAX_SIZE || '8') || 8;
 // const PANEL_FORCE_SPREADING = process.env.PANEL_FORCE_SPREADING && process.env.PANEL_FORCE_SPREADING.toLowerCase() === 'false' ? false : true;

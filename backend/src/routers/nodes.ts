@@ -1,11 +1,10 @@
 import { Router } from 'express';
-import { v4 as uuidv4 } from 'uuid';
-import fetch from 'node-fetch';
 import { Agent } from 'https';
-
-import { APINodeResponse, APIRequestError, APIResponse } from '../../types';
+import fetch from 'node-fetch';
+import { v4 as uuidv4 } from 'uuid';
 
 import { db } from '../sql';
+import { APINodeResponse, APIRequestError, APIResponse } from '../types';
 import { connectToNode, randomString } from '../utils';
 
 const nodesRouter = Router();

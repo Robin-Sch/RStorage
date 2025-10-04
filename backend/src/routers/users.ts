@@ -1,11 +1,11 @@
+import { compare, hash } from 'bcrypt';
 import { Router } from 'express';
 import speakeasy from 'speakeasy';
-import { compare, hash } from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 
 import { db } from '../sql';
+import { APIRequestError, APIResponse, APITOTPResponse, APIUserResponse, APIUsersResponse } from '../types';
 import { getPermissions } from '../utils';
-import { APIRequestError, APIResponse, APITOTPResponse, APIUserResponse, APIUsersResponse } from '../../types';
 
 const PANEL_DISABLE_REGISTER = process.env.PANEL_DISABLE_REGISTER && process.env.PANEL_DISABLE_REGISTER.toLowerCase() === 'false' ? false : true;
 

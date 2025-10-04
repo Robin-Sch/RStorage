@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { APINodesResponse, APIResponse, APIUsersResponse, Node, User } from '../../types';
+import { APINodesResponse, APIResponse, APIUsersResponse, Node, User } from '../types';
 
 const Dashboard = () => {
 	const navigate = useNavigate();
@@ -8,7 +8,6 @@ const Dashboard = () => {
 	const [nodes, setNodes] = useState<Node[]>([]);
 	const [users, setUsers] = useState<User[]>([]);
 	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState(null);
 
 	const [ip, setIp] = useState('127.0.0.1');
 	const [port, setPort] = useState('3001');
@@ -23,15 +22,13 @@ const Dashboard = () => {
 				body: JSON.stringify({ ip, port, ca }),
 				headers: { 'Content-Type': 'application/json' },
 			});
-			if (!res.ok) throw new Error(await res.text());
 
 			const json = (await res.json()) as APIResponse;
-			if (!json.success) throw new Error(json.message);
+			if (!json.success) setResponse(json.message);
 			else fetchNodes();
 		} catch (e) {
 			console.error(e);
-			if (e instanceof Error) setResponse(e.message);
-			else setResponse('Unknown error (see browser console)');
+			setResponse('Unknown error (see browser console)');
 		}
 	};
 
@@ -62,16 +59,14 @@ const Dashboard = () => {
 			if (res.status === 401) {
 				navigate('/login');
 				return;
-			} else if (!res.ok) throw new Error(await res.text());
+			}
 
 			const json = (await res.json()) as APINodesResponse;
-			if (!json.success) throw new Error(json.message);
-
-			setNodes(json.nodes);
+			if (!json.success) setResponse(json.message);
+			else setNodes(json.nodes);
 		} catch (e) {
 			console.error(e);
-			if (e instanceof Error) setResponse(e.message);
-			else setResponse('Unknown error (see browser console)');
+			setResponse('Unknown error (see browser console)');
 		}
 	};
 	const fetchUsers = async () => {
@@ -80,16 +75,14 @@ const Dashboard = () => {
 			if (res.status === 401) {
 				navigate('/login');
 				return;
-			} else if (!res.ok) throw new Error(await res.text());
+			}
 
 			const json = (await res.json()) as APIUsersResponse;
-			if (!json.success) throw new Error(json.message);
-
-			setUsers(json.users);
+			if (!json.success) setResponse(json.message);
+			else setUsers(json.users);
 		} catch (e) {
 			console.error(e);
-			if (e instanceof Error) setResponse(e.message);
-			else setResponse('Unknown error (see browser console)');
+			setResponse('Unknown error (see browser console)');
 		}
 	};
 	useEffect(() => {
@@ -100,7 +93,6 @@ const Dashboard = () => {
 	}, [loading]);
 
 	if (loading) return <div className="text-center py-8">Loading...</div>;
-	if (error) return <div className="text-red-500 text-center py-8">Error: {error}</div>;
 
 	return (
 		<div className="min-h-screen bg-gray-100 p-6">

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { APINodeResponse, APIResponse } from '../../types';
+import { APINodeResponse, APIResponse } from '../types';
 
 const Node = () => {
 	const { id } = useParams();
@@ -13,7 +13,6 @@ const Node = () => {
 	});
 
 	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState('');
 	const [response, setResponse] = useState('');
 
 	const fetchNode = async () => {
@@ -22,16 +21,14 @@ const Node = () => {
 			if (res.status === 401) {
 				navigate('/login');
 				return;
-			} else if (!res.ok) throw new Error(await res.text());
+			}
 
 			const json = (await res.json()) as APINodeResponse;
-			if (!json.success) throw new Error(json.message);
-
-			setNode(json.node);
+			if (!json.success) setResponse(json.message);
+			else setNode(json.node);
 		} catch (e) {
 			console.error(e);
-			if (e instanceof Error) setResponse(e.message);
-			else setResponse('Unknown error (see browser console)');
+			setResponse('Unknown error (see browser console)');
 		} finally {
 			setLoading(false);
 		}
@@ -60,15 +57,14 @@ const Node = () => {
 			if (res.status === 401) {
 				navigate('/login');
 				return;
-			} else if (!res.ok) throw new Error(await res.text());
+			}
 
 			const json = (await res.json()) as APIResponse;
-			if (!json.success) throw new Error(json.message);
-			navigate(0);
+			if (!json.success) setResponse(json.message);
+			else navigate(0);
 		} catch (e) {
 			console.error(e);
-			if (e instanceof Error) setResponse(e.message);
-			else setResponse('Unknown error (see browser console)');
+			setResponse('Unknown error (see browser console)');
 		}
 	};
 
@@ -80,20 +76,18 @@ const Node = () => {
 			if (res.status === 401) {
 				navigate('/login');
 				return;
-			} else if (!res.ok) throw new Error(await res.text());
+			}
 
 			const json = (await res.json()) as APIResponse;
-			if (!json.success) throw new Error(json.message);
-			navigate('/');
+			if (!json.success) setResponse(json.message);
+			else navigate('/');
 		} catch (e) {
 			console.error(e);
-			if (e instanceof Error) setResponse(e.message);
-			else setResponse('Unknown error (see browser console)');
+			setResponse('Unknown error (see browser console)');
 		}
 	};
 
 	if (loading) return <div className="text-center py-8">Loading node details...</div>;
-	if (error) return <div className="text-red-500 text-center py-8">Error: {error}</div>;
 
 	return (
 		<div className="min-h-screen bg-gray-100 p-6">

@@ -11,20 +11,7 @@ import folder_create from '../assets/files/folder_create.svg';
 // import folder_upload from '../assets/files/folder_upload.svg';
 import folder from '../assets/files/folder.svg';
 
-import { APIFilesResponse, APIResponse, Directory, RFile } from '../../types';
-
-class EncryptionStream extends TransformStream {
-	iv = crypto.getRandomValues(new Uint8Array(12));
-
-	constructor(key) {
-		super({
-			transform: async (chunk, controller) => {
-				if (chunk === null) controller.terminate();
-				else controller.enqueue(await crypto.subtle.encrypt({ name: 'AES-GCM', iv: this.iv }, key, chunk));
-			},
-		});
-	}
-}
+import { APIFilesResponse, APIResponse, Directory, EncryptionStream, RFile } from '../types';
 
 const Files = () => {
 	const [searchParams] = useSearchParams();
@@ -35,7 +22,6 @@ const Files = () => {
 	const [directories, setDirectories] = useState<Directory[]>([]);
 
 	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState('');
 	const [response, setResponse] = useState('');
 	const [messages, setMessages] = useState<string[]>([]);
 
@@ -50,17 +36,17 @@ const Files = () => {
 			if (res.status === 401) {
 				navigate('/login');
 				return;
-			} else if (!res.ok) throw new Error(await res.text());
+			}
 
 			const json = (await res.json()) as APIFilesResponse;
-			if (!json.success) throw new Error(json.message);
-
-			setFiles(json.files);
-			setDirectories(json.directories);
+			if (!json.success) setResponse(json.message);
+			else {
+				setFiles(json.files);
+				setDirectories(json.directories);
+			}
 		} catch (e) {
 			console.error(e);
-			if (e instanceof Error) setResponse(e.message);
-			else setResponse('Unknown error (see browser console)');
+			setResponse('Unknown error (see browser console)');
 		} finally {
 			setLoading(false);
 		}
@@ -148,7 +134,6 @@ const Files = () => {
 	};
 
 	if (loading) return <div className="text-center py-8">Loading files...</div>;
-	if (error) return <div className="text-red-500 text-center py-8">Error: {error}</div>;
 
 	return (
 		<div className="min-h-screen bg-gray-100 p-6">

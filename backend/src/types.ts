@@ -62,3 +62,16 @@ export class APIRequestError extends Error {
 		this.json = json;
 	}
 }
+
+export class EncryptionStream extends TransformStream {
+	iv = crypto.getRandomValues(new Uint8Array(12));
+
+	constructor(key) {
+		super({
+			transform: async (chunk, controller) => {
+				if (chunk === null) controller.terminate();
+				else controller.enqueue(await crypto.subtle.encrypt({ name: 'AES-GCM', iv: this.iv }, key, chunk));
+			},
+		});
+	}
+}

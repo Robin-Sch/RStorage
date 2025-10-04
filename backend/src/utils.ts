@@ -1,7 +1,9 @@
+import { randomBytes } from 'crypto';
 import { Agent } from 'node:https';
 import fetch from 'node-fetch';
 
 import { db, init } from './sql';
+import { APIResponse, Node } from './types';
 
 // TODO: replace with some existing module?
 export const cleanPath = (path) => {
@@ -11,9 +13,6 @@ export const cleanPath = (path) => {
 
 	return path;
 };
-
-import { randomBytes } from 'crypto';
-import { APIResponse, Node } from '../types';
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 export const randomString = (length: number): string => {
@@ -176,16 +175,3 @@ export const reset = async () => {
 
 	return init();
 };
-
-export class EncryptionStream extends TransformStream {
-	iv = crypto.getRandomValues(new Uint8Array(12));
-
-	constructor(key) {
-		super({
-			transform: async (chunk, controller) => {
-				if (chunk === null) controller.terminate();
-				else controller.enqueue(await crypto.subtle.encrypt({ name: 'AES-GCM', iv: this.iv }, key, chunk));
-			},
-		});
-	}
-}

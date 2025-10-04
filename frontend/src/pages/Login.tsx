@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import { APIResponse, APITOTPResponse } from '../../types';
+import { APIResponse, APITOTPResponse } from '../types';
 
 const LoginForm = () => {
 	const navigate = useNavigate();
@@ -13,10 +13,8 @@ const LoginForm = () => {
 	const [qrCodeData, setQrCodeData] = useState('');
 
 	const { register: loginRegister, handleSubmit: handleLoginSubmit } = useForm();
-	const { register: regRegister, handleSubmit: handleRegSubmit, watch } = useForm();
+	const { register: regRegister, handleSubmit: handleRegSubmit } = useForm();
 	const { register: verifyRegister, handleSubmit: handleVerifySubmit } = useForm();
-
-	const totp = watch('totp');
 
 	const changeForm = (form) => {
 		setActiveForm(form);
