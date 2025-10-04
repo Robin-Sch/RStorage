@@ -86,7 +86,7 @@ const Files = () => {
 					.then((r) => r.value),
 			]);
 
-			const res = await fetch(`/api/files?path=${encodeURIComponent(path)}`, {
+			const res = await fetch(`/api/files/upload?path=${encodeURIComponent(path)}`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/octet-stream',
@@ -103,6 +103,7 @@ const Files = () => {
 
 			const json = (await res.json()) as APIResponse;
 			if (!json.success) throw new Error(json.message);
+			else navigate(0);
 		} catch (e) {
 			console.error(e);
 			if (e instanceof Error) setResponse(e.message);
@@ -114,18 +115,30 @@ const Files = () => {
 		multiple: false,
 	});
 
-	const uploadFile = (file) => {
-		console.log('NO');
-	};
-
 	const handleDirCreate = async () => {
 		navigate(`/files?path=${directoryName}`);
 		// TODO: create
 	};
 
 	const handleFileDelete = async (path, name) => {
-		// TODO
-		// socket.emit('delete', { path, name });
+		try {
+			const res = await fetch(`/api/files/delete?path=${encodeURIComponent(path)}&name=${encodeURIComponent(name)}`, {
+				method: 'POST',
+			});
+			if (res.status === 401) {
+				navigate('/login');
+				return;
+			}
+
+			const json = (await res.json()) as APIResponse;
+			console.log(json);
+
+			if (!json.success) setResponse(json.message);
+			else navigate(0);
+		} catch (e) {
+			console.error(e);
+			setResponse('Unknown error (see browser console)');
+		}
 	};
 
 	const handleFileDownload = async (path, name) => {
@@ -163,10 +176,7 @@ const Files = () => {
 
 							<div className="flex space-x-2">
 								<input {...getInputProps()} id="file" type="file" className="hidden" />
-								<button
-									onClick={uploadFile}
-									className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-md flex items-center justify-center"
-								>
+								<button className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-md flex items-center justify-center">
 									<span>Upload</span>
 									{uploadPercentage && <span className="ml-2 text-sm">{uploadPercentage}%</span>}
 								</button>
@@ -195,7 +205,7 @@ const Files = () => {
 										className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
 									/>
 								</div>
-								<button onClick={handleDirCreate} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md">
+								<button onClick={handleDirCreate} className="px-4 py-2 text-white rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors shadow-md">
 									Create
 								</button>
 							</div>
@@ -266,7 +276,7 @@ const Files = () => {
 										<td className="px-4 py-2 border-b border-gray-200">
 											<button
 												onClick={() => handleFileDelete(path, file.name)}
-												className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+												className="px-4 py-2 text-white rounded-lg bg-red-600 hover:bg-red-800 transition-colors shadow-md"
 											>
 												Delete
 											</button>
@@ -274,7 +284,7 @@ const Files = () => {
 										<td className="px-4 py-2 border-b border-gray-200">
 											<button
 												onClick={() => handleFileDownload(path, file.name)}
-												className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+												className="px-4 py-2 text-white rounded-lg bg-green-600 hover:bg-green-800 transition-colors shadow-md"
 											>
 												Download
 											</button>

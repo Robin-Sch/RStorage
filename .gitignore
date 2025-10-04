@@ -26,5 +26,6 @@ package-lock.json
 
 # Other
 .env
+*.db
 node/keys
-node/files
+node/parts

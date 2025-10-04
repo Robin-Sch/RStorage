@@ -5,16 +5,14 @@ import { createServer } from 'node:https';
 import { createCertificate } from 'pem';
 import { APIRequestError } from './types';
 
-const IPs: string[] = [];
-
 const NODE_COMMONNAME = process.env.NODE_COMMONNAME || '127.0.0.1';
 const NODE_PORT = parseInt(process.env.NODE_PORT || '3001') || 3001;
 
 const nodeDir = join(__dirname, '../../'); // because of dist/src/index.js
-const filesDir = join(nodeDir, 'files');
+const partsDir = join(nodeDir, 'parts');
 const keysDir = join(nodeDir, 'keys');
 
-if (!existsSync(filesDir)) mkdirSync(filesDir);
+if (!existsSync(partsDir)) mkdirSync(partsDir);
 if (!existsSync(keysDir)) mkdirSync(keysDir);
 
 let NODE_KEY = existsSync(join(keysDir, 'node.key')) ? readFileSync(join(keysDir, 'node.key'), 'utf8') : null;
@@ -55,20 +53,15 @@ const app = express();
 app
 	.use(express.json({ limit: '2000mb' }))
 	.use(express.urlencoded({ limit: '2000mb', extended: true }))
-	.set('views', join(__dirname, 'views'))
-	.set('view engine', 'ejs')
 	.post('/init', (req, res) => {
 		try {
 			const key = req.body.key;
 			if (!key) throw new APIRequestError();
 			if (PANEL_KEY && PANEL_KEY !== key) throw new APIRequestError(403, { message: 'The node is already connected to a different panel!', success: false });
 
-			const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress) as string;
-			if (!IPs.includes(ip)) IPs.push(ip);
-
 			if (!PANEL_KEY) {
 				PANEL_KEY = key;
-				writeFileSync(join(__dirname, '../', 'keys/panel.key'), key);
+				writeFileSync(join(keysDir, 'panel.key'), key);
 			}
 
 			res.status(200).json({ message: '', success: true });
@@ -86,13 +79,11 @@ app
 			if (!PANEL_KEY) throw new APIRequestError(400, { message: 'The node is not (yet) connected to a panel!', success: false, reconnect: true });
 
 			const key = req.body.key;
-			const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress) as string;
 			if (!key) throw new APIRequestError();
-			if (PANEL_KEY !== key || !IPs.includes(ip))
-				throw new APIRequestError(403, { message: 'The node is already connected to a different panel!', success: false });
+			if (PANEL_KEY !== key) throw new APIRequestError(403, { message: 'The node is already connected to a different panel!', success: false });
 
 			PANEL_KEY = null;
-			unlinkSync(join(__dirname, '../', 'keys/panel.key'));
+			unlinkSync(join(keysDir, 'panel.key'));
 
 			res.status(200).json({ message: '', success: true });
 		} catch (e) {
@@ -103,48 +94,20 @@ app
 			}
 		}
 	})
-	.post('/files/delete', async (req, res) => {
-		try {
-			// @ts-expect-error Extra property
-			if (!PANEL_KEY) throw new APIRequestError(400, { message: 'The node is not (yet) connected to a panel!', success: false, reconnect: true });
-
-			const key = req.body.key;
-			const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress) as string;
-			if (!key) throw new APIRequestError();
-			if (PANEL_KEY !== key || !IPs.includes(ip))
-				throw new APIRequestError(403, { message: 'The node is already connected to a different panel!', success: false });
-
-			const id = req.body.id;
-			if (!id) throw new APIRequestError();
-			if (!existsSync(`${filesDir}/${id}`)) throw new APIRequestError(400, { message: 'That file or directory does not exists!', success: false });
-
-			unlinkSync(`${filesDir}/${id}`);
-
-			res.status(200).json({ message: '', success: true });
-		} catch (e) {
-			if (e instanceof APIRequestError) res.status(e.status).json(e.json);
-			else {
-				console.error(e);
-				res.status(400).json({ message: 'Something went wrong, please try again!', success: false });
-			}
-		}
-	})
-	.post('/files/upload', async (req, res) => {
+	.post('/parts/upload', async (req, res) => {
 		try {
 			// @ts-expect-error Extra property
 			if (!PANEL_KEY) throw new APIRequestError(400, { message: 'The node is not (yet) connected to a panel!', success: false, reconnect: true });
 
 			const key = req.headers['authorization']?.toString();
-			const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress) as string;
 			if (!key) throw new APIRequestError();
-			if (PANEL_KEY !== key || !IPs.includes(ip))
-				throw new APIRequestError(403, { message: 'The node is already connected to a different panel!', success: false });
+			if (PANEL_KEY !== key) throw new APIRequestError(403, { message: 'The node is already connected to a different panel!', success: false });
 
 			const name = req.headers['x-filename']?.toString();
 			if (!name) throw new APIRequestError();
 
-			const filePath = join(__dirname, '../', 'files', name);
-			const writeStream = createWriteStream(filePath);
+			const partPath = join(partsDir, name);
+			const writeStream = createWriteStream(partPath);
 			req.pipe(writeStream);
 
 			writeStream.on('finish', () => {
@@ -162,22 +125,45 @@ app
 			}
 		}
 	})
-	.post('/files/download', async (req, res) => {
+	.post('/parts/delete', async (req, res) => {
+		try {
+			// @ts-expect-error Extra property
+			if (!PANEL_KEY) throw new APIRequestError(400, { message: 'The node is not (yet) connected to a panel!', success: false, reconnect: true });
+
+			const key = req.headers['authorization']?.toString();
+			if (!key) throw new APIRequestError();
+
+			if (PANEL_KEY !== key) throw new APIRequestError(403, { message: 'The node is already connected to a different panel!', success: false });
+
+			const id = req.query?.id;
+			if (!id) throw new APIRequestError();
+			if (!existsSync(`${partsDir}/${id}`)) throw new APIRequestError(400, { message: 'That part does not exists!', success: false });
+
+			unlinkSync(`${partsDir}/${id}`);
+
+			res.status(200).json({ message: '', success: true });
+		} catch (e) {
+			if (e instanceof APIRequestError) res.status(e.status).json(e.json);
+			else {
+				console.error(e);
+				res.status(400).json({ message: 'Something went wrong, please try again!', success: false });
+			}
+		}
+	})
+	.post('/parts/download', async (req, res) => {
 		try {
 			// @ts-expect-error Extra property
 			if (!PANEL_KEY) throw new APIRequestError(400, { message: 'The node is not (yet) connected to a panel!', success: false, reconnect: true });
 
 			const key = req.body.key;
-			const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress) as string;
 			if (!key) throw new APIRequestError();
-			if (PANEL_KEY !== key || !IPs.includes(ip))
-				throw new APIRequestError(403, { message: 'The node is already connected to a different panel!', success: false });
+			if (PANEL_KEY !== key) throw new APIRequestError(403, { message: 'The node is already connected to a different panel!', success: false });
 
 			const id = req.body.id;
 			if (!id) throw new APIRequestError();
-			if (!existsSync(`${filesDir}/${id}`)) throw new APIRequestError(400, { message: 'That file or directory does not exists!', success: false });
+			if (!existsSync(`${partsDir}/${id}`)) throw new APIRequestError(400, { message: 'That part does not exists!', success: false });
 
-			return createReadStream(`${filesDir}/${id}`).pipe(res);
+			return createReadStream(`${partsDir}/${id}`).pipe(res);
 		} catch (e) {
 			if (e instanceof APIRequestError) res.status(e.status).json(e.json);
 			else {

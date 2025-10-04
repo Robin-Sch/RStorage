@@ -3,7 +3,8 @@ import sqlite3 from 'better-sqlite3';
 import { join } from 'node:path';
 import { v4 as uuidv4 } from 'uuid';
 
-const db = sqlite3(join(__dirname, 'database.db'));
+const nodeDir = join(__dirname, '../../'); // because of dist/src/index.js
+const db = sqlite3(join(nodeDir, 'database.db'));
 
 const init = () => {
 	db.prepare('CREATE TABLE if not exists users (id TEXT, username TEXT, password TEXT, verified BOOL, secret TEXT, permissions TEXT);').run();

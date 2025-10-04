@@ -33,7 +33,7 @@ filesRouter
 			}
 		}
 	})
-	.post('/', async (req, res) => {
+	.post('/upload', async (req, res) => {
 		try {
 			if (!req.session.loggedin) throw new APIRequestError(401, { message: 'You are not logged in!', success: false });
 			if (!req.session.permissions?.file.includes(2))
@@ -73,7 +73,7 @@ filesRouter
 				ca: node.ca,
 			});
 
-			const uploadRes = await fetch(`https://${node.ip}:${node.port}/files/upload`, {
+			const uploadRes = await fetch(`https://${node.ip}:${node.port}/parts/upload`, {
 				method: 'POST',
 				duplex: 'half',
 				headers: {
@@ -97,6 +97,64 @@ filesRouter
 				// TODO: send as websocket
 				console.log(`[upload] [server-side] ${path}${name} uploaded to node`);
 				res.status(200).json({ message: '', success: true });
+			}
+		} catch (e) {
+			if (e instanceof APIRequestError) res.status(e.status).json(e.json);
+			else {
+				console.error(e);
+				res.status(400).json({ message: 'Something went wrong, please try again!', success: false });
+			}
+		}
+	})
+	.post('/delete', async (req, res) => {
+		try {
+			if (!req.session.loggedin) throw new APIRequestError(401, { message: 'You are not logged in!', success: false });
+			if (!req.session.permissions?.file.includes(4))
+				throw new APIRequestError(403, { message: 'You do not have enough permissions to do that action!', success: false });
+
+			if (!req.query || !req.query.path || !req.query.name) throw new APIRequestError();
+			const path = cleanPath(req.query.path);
+			const name = req.query.name;
+
+			const { id: fileID } = await db.prepare('SELECT id FROM files WHERE path = ? AND name = ?;').get([path, name]);
+			if (!fileID) throw new APIRequestError(400, { message: 'That file or directory does not exists!', success: false });
+
+			const parts = await db.prepare('SELECT id, node FROM parts WHERE file = ?;').all([fileID]);
+
+			let successful = true;
+			for (const { id: partID, node: nodeID } of parts) {
+				const { ip, port, ca, ckey } = await db.prepare('SELECT ip, port, ca, ckey FROM nodes WHERE id = ?;').get([nodeID]);
+
+				const agent = new Agent({
+					ca: ca,
+				});
+
+				const uploadRes = await fetch(`https://${ip}:${port}/parts/delete?id=${partID}`, {
+					method: 'POST',
+					headers: {
+						Authorization: ckey,
+					},
+					agent,
+				});
+				const json = (await uploadRes.json()) as APIResponse;
+				if (!json.success) {
+					// TODO: send as websocket
+					console.log(`[delete] [server-side] ${path}${name} failed`);
+					console.log(json.message);
+					successful = false;
+				} else {
+					await db.prepare('DELETE FROM parts WHERE id = ? AND file = ? AND node = ?').run([partID, fileID, nodeID]);
+					// TODO: send as websocket
+					console.log(`[delete] [server-side] ${path}${name} deleted from node`);
+				}
+			}
+
+			if (successful) {
+				await db.prepare('DELETE FROM files WHERE id = ?;').run([fileID]);
+				res.status(200).json({ message: '', success: true });
+			} else {
+				// TODO, some parts are deleted, other parts are not...
+				console.log('nope');
 			}
 		} catch (e) {
 			if (e instanceof APIRequestError) res.status(e.status).json(e.json);
